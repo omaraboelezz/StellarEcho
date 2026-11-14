@@ -7,13 +7,13 @@ import { GoogleGenAI } from '@google/genai';
 import {
   ASTRO_COMPACT_SYSTEM_INSTRUCTION,
   ASTRO_SYSTEM_INSTRUCTION,
-} from '../src/lib/astro/systemInstruction';
+} from '../src/lib/astro/systemInstruction.js';
 import {
   formatContextForPrompt,
   type StructuredAstroContext,
-} from '../src/lib/astro/contextBuilder';
-import { celestialBodies } from '../src/data/planets';
-import { deepSpaceMissions, getLandmarksForBody, landmarks } from '../src/data/landmarks';
+} from '../src/lib/astro/contextBuilder.js';
+import { celestialBodies } from '../src/data/planets.js';
+import { deepSpaceMissions, getLandmarksForBody, landmarks } from '../src/data/landmarks.js';
 
 export interface ChatHistoryTurn {
   role: 'user' | 'model';

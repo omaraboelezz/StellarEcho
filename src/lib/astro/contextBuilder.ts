@@ -4,7 +4,7 @@
 // Only includes the celestial body, mission landmark, timeline chapter, and resources
 // relevant to what the student is currently viewing or asking about — never the entire database.
 
-import { celestialBodies, type PlanetData } from '../../data/planets';
+import { celestialBodies, type PlanetData } from '../../data/planets.js';
 import {
   deepSpaceMissions,
   getChapters,
@@ -12,8 +12,8 @@ import {
   getLandmarksForBody,
   landmarks,
   type Landmark,
-} from '../../data/landmarks';
-import { planetResources } from '../../data/resources';
+} from '../../data/landmarks.js';
+import { planetResources } from '../../data/resources.js';
 
 export interface ExplorationContextInput {
   isExploring: boolean;

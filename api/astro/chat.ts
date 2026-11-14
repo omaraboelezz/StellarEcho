@@ -4,7 +4,7 @@ import {
   handleAstroChatRequest,
   streamAstroChatResponse,
   type AstroChatRequest,
-} from '../../server/astroHandler';
+} from '../../server/astroHandler.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {

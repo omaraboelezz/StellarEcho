@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/**/*.ts": {
+      "includeFiles": "{server,src/lib/astro,src/data}/**"
+    }
+  }
+}

@@ -3,8 +3,8 @@
 // Frontend client for the server-side `/api/astro/chat` endpoint.
 // Never touches or stores API keys on the client; communicates exclusively with `/api/astro/chat`.
 
-import { buildAstroContext, type ExplorationContextInput } from './contextBuilder';
-import { toApiHistory, type AstroMessage } from './conversationStore';
+import { buildAstroContext, type ExplorationContextInput } from './contextBuilder.js';
+import { toApiHistory, type AstroMessage } from './conversationStore.js';
 
 export interface AstroApiResult {
   reply: string;

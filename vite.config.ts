@@ -4,7 +4,7 @@ import {
   handleAstroChatRequest,
   streamAstroChatResponse,
   type AstroChatRequest,
-} from './server/astroHandler';
+} from './server/astroHandler.js';
 
 function astroAiServerPlugin(mode: string): Plugin {
   const env = loadEnv(mode, process.cwd(), '');
