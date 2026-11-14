@@ -42,6 +42,7 @@ function applyDocumentLanguage(lang: Language): void {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   document.documentElement.lang = lang;
   document.documentElement.dir = dir;
+  document.title = 'StellarEcho';
 }
 
 function localizeBodyData(body: PlanetData, lang: Language): PlanetData {

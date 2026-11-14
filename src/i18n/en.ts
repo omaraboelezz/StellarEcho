@@ -1,5 +1,5 @@
 // src/i18n/en.ts
-// Complete English UI translations for Solar System Atlas.
+// Complete English UI translations for StellarEcho.
 
 import type { Translations } from './types';
 
@@ -35,7 +35,7 @@ export const en: Translations = {
   },
 
   topbar: {
-    brandTitle: 'SOLAR SYSTEM ATLAS',
+    brandTitle: 'StellarEcho',
     brandSubOverview: 'ORBITAL OVERVIEW',
     brandSubInspecting: (name: string) => `INSPECTING · ${name.toUpperCase()}`,
     solarOverviewBtn: 'Solar Overview',
@@ -304,16 +304,27 @@ export const en: Translations = {
 
   resources: {
     sectionTitle: 'Knowledge Center',
+    sectionHeading: (bodyName: string) => `${bodyName} Educational Resources`,
+    sectionSubtitle: (bodyName: string) =>
+      `Explore verified scientific articles, space missions, research discoveries, planetary imagery, and interactive 3D tools dedicated to ${bodyName}.`,
     countBadge: (count: number) => `${count} ${count === 1 ? 'RESOURCE' : 'RESOURCES'}`,
-    searchPlaceholder: (bodyName: string) => `Search ${bodyName} resources...`,
+    resourcesLabel: 'VERIFIED',
+    verifiedBadge: 'NASA · ESA · JPL Verified',
+    searchPlaceholder: (bodyName: string) => `Search ${bodyName} missions, research, articles...`,
     clearSearchAria: 'Clear search',
-    filterAll: 'All',
+    filterAll: 'All Resources',
     types: {
-      article: 'Article',
-      video: 'Video',
-      interactive: 'Explore',
-      research: 'Research',
+      scientificArticles: 'Scientific Articles',
+      spaceMissions: 'Space Missions',
+      researchDiscoveries: 'Research & Discoveries',
+      imagesMedia: 'Images & Media',
+      educationalMaterials: 'Educational Materials',
+      interactive3D: '3D & Interactive',
     },
+    exploreResourceBtn: 'Explore Resource',
+    learnMoreBtn: 'Learn More',
+    emptyTitle: 'No matching resources found',
+    emptySubtitle: 'Try a different search term or reset the category filter to view all resources.',
     noMatchText: (query: string) => `No resources match "${query}".`,
     resetFiltersBtn: 'Reset Filters',
   },
@@ -347,7 +358,7 @@ export const en: Translations = {
       missionPrefix: 'Mission',
       exploringPrefix: 'Exploring',
       solarSystemOverview: 'Solar System Overview',
-      solarSystemAtlas: 'Solar System Atlas',
+      solarSystemAtlas: 'StellarEcho',
     },
   },
 };

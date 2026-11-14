@@ -1,5 +1,23 @@
-import { useMemo, useState } from 'react';
-import type { ResourceType, PlanetResource } from '../../data/resources';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowUpRight,
+  BookOpen,
+  Camera,
+  FlaskConical,
+  GraduationCap,
+  Orbit,
+  Rocket,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from 'lucide-react';
+import {
+  RESOURCE_CATEGORIES,
+  type PlanetResource,
+  type ResourceType,
+} from '../../data/resources';
 import { useLanguage } from '../../i18n/LanguageContext';
 import './ResourcesSection.css';
 
@@ -9,79 +27,147 @@ interface ResourcesSectionProps {
   onResourceExplore?: (resourceKey: string) => void;
 }
 
-const filters = ['All', 'Article', 'Video', 'Explore', 'Research'] as const;
+type FilterOption = 'All' | ResourceType;
 
-const typeIcons: Record<ResourceType, string> = {
-  Article: '📖',
-  Video: '▶',
-  Explore: '🌍',
-  Research: '🔬',
+const CATEGORY_CLASS_MAP: Record<ResourceType, string> = {
+  'Scientific Articles': 'cat-articles',
+  'Space Missions': 'cat-missions',
+  'Research & Discoveries': 'cat-research',
+  'Images & Media': 'cat-media',
+  'Educational Materials': 'cat-education',
+  '3D & Interactive': 'cat-interactive',
 };
+
+function renderCategoryIcon(type: ResourceType, size = 13) {
+  switch (type) {
+    case 'Scientific Articles':
+      return <BookOpen size={size} />;
+    case 'Space Missions':
+      return <Rocket size={size} />;
+    case 'Research & Discoveries':
+      return <FlaskConical size={size} />;
+    case 'Images & Media':
+      return <Camera size={size} />;
+    case 'Educational Materials':
+      return <GraduationCap size={size} />;
+    case '3D & Interactive':
+      return <Orbit size={size} />;
+  }
+}
 
 export default function ResourcesSection({
   planetId,
   planetName,
   onResourceExplore,
 }: ResourcesSectionProps) {
-  const { lang, isRtl, t, getLocalizedResources } = useLanguage();
-  const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>('All');
+  const { isRtl, t, getLocalizedResources } = useLanguage();
+  const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
   const [search, setSearch] = useState('');
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const planetKey = (planetId ?? planetName).toLowerCase().trim();
+
+  // Automatically reset filter and search when switching between planets
+  useEffect(() => {
+    setActiveFilter('All');
+    setSearch('');
+  }, [planetKey]);
 
   const resources: PlanetResource[] = useMemo(
     () => getLocalizedResources(planetKey),
     [planetKey, getLocalizedResources]
   );
 
-  const filterLabels: Record<(typeof filters)[number], string> = {
-    All: t.resources.filterAll,
-    Article: t.resources.types.article,
-    Video: t.resources.types.video,
-    Explore: t.resources.types.interactive,
-    Research: t.resources.types.research,
-  };
+  // Only include categories that have actual relevant resources for the selected planet
+  const availableCategories = useMemo(() => {
+    return RESOURCE_CATEGORIES.filter((category) =>
+      resources.some((resource) => resource.type === category)
+    );
+  }, [resources]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: resources.length };
+    for (const category of RESOURCE_CATEGORIES) {
+      counts[category] = resources.filter((r) => r.type === category).length;
+    }
+    return counts;
+  }, [resources]);
+
+  const filterLabels: Record<FilterOption, string> = useMemo(
+    () => ({
+      All: t.resources.filterAll,
+      'Scientific Articles': t.resources.types.scientificArticles,
+      'Space Missions': t.resources.types.spaceMissions,
+      'Research & Discoveries': t.resources.types.researchDiscoveries,
+      'Images & Media': t.resources.types.imagesMedia,
+      'Educational Materials': t.resources.types.educationalMaterials,
+      '3D & Interactive': t.resources.types.interactive3D,
+    }),
+    [t]
+  );
 
   const filteredResources = useMemo(() => {
+    const query = search.trim().toLowerCase();
     return resources.filter((resource) => {
       const matchesFilter = activeFilter === 'All' || resource.type === activeFilter;
-      const query = search.toLowerCase();
+      if (!matchesFilter) return false;
+      if (!query) return true;
 
-      const matchesSearch =
+      const localizedTypeLabel = filterLabels[resource.type]?.toLowerCase() ?? '';
+      return (
         resource.title.toLowerCase().includes(query) ||
         resource.description.toLowerCase().includes(query) ||
-        resource.source.toLowerCase().includes(query);
-
-      return matchesFilter && matchesSearch;
+        resource.source.toLowerCase().includes(query) ||
+        localizedTypeLabel.includes(query)
+      );
     });
-  }, [resources, activeFilter, search]);
+  }, [resources, activeFilter, search, filterLabels]);
+
+  const handleImageError = (imageKey: string) => {
+    setFailedImages((prev) => (prev[imageKey] ? prev : { ...prev, [imageKey]: true }));
+  };
+
+  const handleOpenResource = (resource: PlanetResource) => {
+    onResourceExplore?.(`resource-${planetKey}-${resource.id}`);
+    window.open(resource.url, '_blank', 'noopener,noreferrer');
+  };
+
+  const resetFilters = () => {
+    setActiveFilter('All');
+    setSearch('');
+  };
 
   return (
     <section className="resources-section" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="resources-header">
-        <div>
-          <span className="resources-eyebrow">{t.resources.sectionTitle}</span>
+        <div className="resources-header-text">
+          <div className="resources-eyebrow-row">
+            <span className="resources-eyebrow">
+              <Sparkles size={12} />
+              {t.resources.sectionTitle}
+            </span>
+            <span className="resources-verified-pill">
+              <ShieldCheck size={12} />
+              {t.resources.verifiedBadge}
+            </span>
+          </div>
 
-          <h2>{lang === 'ar' ? 'استكشف وتعلّم' : 'Explore & Learn'}</h2>
+          <h2>{t.resources.sectionHeading(planetName)}</h2>
 
-          <p>
-            {lang === 'ar'
-              ? `اكتشف المعرفة العلمية، والتجارب التفاعلية، والمهمات الفضائية المرتبطة بـ ${planetName}.`
-              : `Discover scientific knowledge, interactive experiences, and space missions related to ${planetName}.`}
-          </p>
+          <p>{t.resources.sectionSubtitle(planetName)}</p>
         </div>
 
-        <div className="resources-count">
+        <div className="resources-count" aria-label={t.resources.countBadge(resources.length)}>
           <span>{resources.length}</span>
-          <small>{lang === 'ar' ? 'مصادر' : 'RESOURCES'}</small>
+          <small>{t.resources.resourcesLabel}</small>
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Category Filters Toolbar */}
       <div className="resources-toolbar">
         <div className="resources-search">
-          <span>⌕</span>
+          <Search size={15} className="resources-search-icon" />
 
           <input
             type="text"
@@ -89,76 +175,139 @@ export default function ResourcesSection({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+
+          {search.length > 0 && (
+            <button
+              type="button"
+              className="resources-search-clear"
+              onClick={() => setSearch('')}
+              aria-label={t.resources.clearSearchAria}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
-        {/* Filters */}
-        <div className="resources-filters">
-          {filters.map((filter) => (
+        {/* Dynamic Category Filters — only shown when relevant resources exist */}
+        <div className="resources-filters" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeFilter === 'All'}
+            className={`resource-filter-chip ${activeFilter === 'All' ? 'active' : ''}`}
+            onClick={() => setActiveFilter('All')}
+          >
+            <span>{filterLabels.All}</span>
+            <span className="filter-chip-count">{categoryCounts.All}</span>
+          </button>
+
+          {availableCategories.map((category) => (
             <button
-              key={filter}
+              key={category}
               type="button"
-              className={activeFilter === filter ? 'active' : ''}
-              onClick={() => setActiveFilter(filter)}
+              role="tab"
+              aria-selected={activeFilter === category}
+              className={`resource-filter-chip ${CATEGORY_CLASS_MAP[category]} ${
+                activeFilter === category ? 'active' : ''
+              }`}
+              onClick={() => setActiveFilter(category)}
             >
-              {filterLabels[filter]}
+              {renderCategoryIcon(category, 12)}
+              <span>{filterLabels[category]}</span>
+              <span className="filter-chip-count">{categoryCounts[category]}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Resource Cards */}
+      {/* Resource Cards Grid */}
       {filteredResources.length > 0 ? (
         <div className="resources-grid">
-          {filteredResources.map((resource) => (
-            <article className="resource-card" key={resource.id}>
-              {/* Image */}
-              <div className="resource-image">
-                <img src={resource.image} alt={resource.title} loading="lazy" />
+          {filteredResources.map((resource) => {
+            const imageKey = `${planetKey}-${resource.id}`;
+            const imageFailed = Boolean(failedImages[imageKey]);
+            const categoryClass = CATEGORY_CLASS_MAP[resource.type];
 
-                <span
-                  className={`resource-type type-${resource.type.toLowerCase()}`}
-                >
-                  {typeIcons[resource.type]}{' '}
-                  {filterLabels[resource.type as (typeof filters)[number]]}
-                </span>
-              </div>
+            return (
+              <article
+                className={`resource-card ${categoryClass}`}
+                key={imageKey}
+              >
+                {/* Thumbnail Preview & Category Overlay */}
+                <div className="resource-image">
+                  {!imageFailed ? (
+                    <img
+                      src={resource.image}
+                      alt={resource.title}
+                      loading="lazy"
+                      onError={() => handleImageError(imageKey)}
+                    />
+                  ) : (
+                    <div className="resource-image-fallback">
+                      {renderCategoryIcon(resource.type, 32)}
+                      <span>{resource.source}</span>
+                    </div>
+                  )}
 
-              {/* Content */}
-              <div className="resource-content">
-                <div className="resource-source">
-                  <span className="source-dot" />
-                  {resource.source}
+                  <div className="resource-image-gradient" />
+
+                  <span className={`resource-type resource-type-badge ${categoryClass}`}>
+                    {renderCategoryIcon(resource.type, 12)}
+                    <span>{filterLabels[resource.type]}</span>
+                  </span>
                 </div>
 
-                <h3>{resource.title}</h3>
+                {/* Card Body */}
+                <div className="resource-content">
+                  <div className="resource-source resource-source-row">
+                    <span className="resource-source-badge">
+                      <span className="source-dot" />
+                      {resource.source}
+                    </span>
+                  </div>
 
-                <p>{resource.description}</p>
+                  <h3 className="resource-card-title">{resource.title}</h3>
 
-                <a
-                  href={resource.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="resource-link"
-                  onClick={() =>
-                    onResourceExplore?.(`resource-${planetKey}-${resource.id}`)
-                  }
-                >
-                  {lang === 'ar' ? 'استعرض المصدر' : 'Explore Resource'}
-                  <span>{isRtl ? '↖' : '↗'}</span>
-                </a>
-              </div>
-            </article>
-          ))}
+                  <p className="resource-card-desc">{resource.description}</p>
+
+                  <div className="resource-card-footer">
+                    <button
+                      type="button"
+                      className={`resource-explore-btn resource-cta-btn resource-link ${categoryClass}`}
+                      onClick={() => handleOpenResource(resource)}
+                    >
+                      <span className="resource-explore-btn-label">
+                        {t.resources.exploreResourceBtn}
+                      </span>
+                      <span className="resource-explore-btn-icon" aria-hidden="true">
+                        <ArrowUpRight size={15} />
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <div className="resources-empty">
-          <span>🔭</span>
-          <h3>{lang === 'ar' ? 'لم يتم العثور على مصادر' : 'No resources found'}</h3>
+          <div className="resources-empty-icon">
+            <Orbit size={28} />
+          </div>
+          <h3>{t.resources.emptyTitle}</h3>
           <p>
-            {lang === 'ar'
-              ? 'جرّب عبارة بحث أخرى أو اختر تصنيفاً مختلفاً.'
-              : 'Try another search or select a different category.'}
+            {search.trim()
+              ? t.resources.noMatchText(search.trim())
+              : t.resources.emptySubtitle}
           </p>
+          <button
+            type="button"
+            className="resources-reset-btn"
+            onClick={resetFilters}
+          >
+            <RotateCcw size={13} />
+            <span>{t.resources.resetFiltersBtn}</span>
+          </button>
         </div>
       )}
     </section>

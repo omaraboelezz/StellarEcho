@@ -143,8 +143,12 @@ export default function UI({
             </div>
 
             <div className="hero-badge">
-              <span className="hero-badge-dot" />
-              {t.hero.eyebrow}
+              <img
+                src="/stellarecho.png"
+                alt="StellarEcho"
+                className="hero-brand-logo"
+              />
+              <span>StellarEcho · {t.hero.eyebrow}</span>
             </div>
 
             <h1 className="hero-title">
@@ -171,7 +175,11 @@ export default function UI({
             transition={{ duration: 0.45 }}
           >
             <div className="glass-panel hud-brand interactive" dir={isRtl ? 'rtl' : 'ltr'}>
-              <span className="hud-brand-mark" />
+              <img
+                src="/stellarecho.png"
+                alt="StellarEcho"
+                className="hud-brand-logo"
+              />
               <div>
                 <div className="hud-brand-title">{t.topbar.brandTitle}</div>
                 <div className="hud-brand-sub">

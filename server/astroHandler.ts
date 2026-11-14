@@ -93,7 +93,7 @@ function tryInstantConversationalReply(
         : `أهلاً بك يا مستكشف الفضاء! 👋 أنا **Astro AI**، مساعدك الذكي لاستكشاف المجموعة الشمسية والمهمات الفضائية. أي كوكب أو مهمة تود أن نستكشفها معاً اليوم؟`;
     }
     if (/^(من\s*أنت|من\s*انت|ما\s*هو\s*دورك|ماذا\s*تفعل)[\s!?.،؟]*$/i.test(trimmed)) {
-      return `أنا **Astro AI** 🚀، معلمك ومساعدك الذكي لاستكشاف الفضاء في منصة **Solar System Atlas**. أساعدك في فهم الكواكب، الأقمار، المركبات الفضائية، والخطوط الزمنية للمهمات التاريخية بلغة علمية مبسطة ودقيقة.`;
+      return `أنا **Astro AI** 🚀، معلمك ومساعدك الذكي لاستكشاف الفضاء في منصة **StellarEcho**. أساعدك في فهم الكواكب، الأقمار، المركبات الفضائية، والخطوط الزمنية للمهمات التاريخية بلغة علمية مبسطة ودقيقة.`;
     }
     if (/^(شكرا|شكراً|شكرا\s*لك|ممتاز|رائع|تمام)[\s!?.،؟]*$/i.test(trimmed)) {
       return `على الرحب والسعة يا مستكشف الفضاء! 🌟 أخبرني في أي وقت إذا كان لديك أي سؤال آخر حول الكواكب أو المركبات الفضائية.`;
@@ -119,7 +119,7 @@ function tryInstantConversationalReply(
 
   if (/^(who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|help)[\s!?.]*$/i.test(q)) {
     return [
-      `I’m **Astro AI** 🚀, your interactive space science teacher built into **Solar System Atlas**.`,
+      `I’m **Astro AI** 🚀, your interactive space science teacher built into **StellarEcho**.`,
       '',
       `- **Planets & Moons:** Ask about any world’s atmosphere, orbit, temperature, or geology.`,
       `- **Moon Equipment:** Explore **Apollo Lunar Modules (Apollo 11 Eagle)**, **Lunar Roving Vehicles (LRVs)**, **ALSEP Scientific Packages**, and **Surveyor Landers**.`,

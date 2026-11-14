@@ -135,6 +135,14 @@ h6 {
   box-shadow: 0 0 10px var(--accent-cyan);
 }
 
+.hero-brand-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .hero-title {
   font-size: clamp(2.75rem, 6vw, 5.25rem);
   font-weight: 700;
@@ -224,12 +232,19 @@ h6 {
   box-shadow: 0 0 12px var(--accent-cyan);
 }
 
+.hud-brand-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .hud-brand-title {
   font-family: var(--font-display);
   font-size: 0.88rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .hud-brand-sub {

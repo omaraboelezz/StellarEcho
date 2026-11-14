@@ -279,16 +279,26 @@ export interface Translations {
   // Knowledge Center / Resources Section
   resources: {
     sectionTitle: string;
+    sectionHeading: (bodyName: string) => string;
+    sectionSubtitle: (bodyName: string) => string;
     countBadge: (count: number) => string;
+    resourcesLabel: string;
+    verifiedBadge: string;
     searchPlaceholder: (bodyName: string) => string;
     clearSearchAria: string;
     filterAll: string;
     types: {
-      article: string;
-      video: string;
-      interactive: string;
-      research: string;
+      scientificArticles: string;
+      spaceMissions: string;
+      researchDiscoveries: string;
+      imagesMedia: string;
+      educationalMaterials: string;
+      interactive3D: string;
     };
+    exploreResourceBtn: string;
+    learnMoreBtn: string;
+    emptyTitle: string;
+    emptySubtitle: string;
     noMatchText: (query: string) => string;
     resetFiltersBtn: string;
   };
