@@ -5,6 +5,7 @@ import { useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { BodyVisual } from '../../data/planetVisuals';
 import { configureTexture, useHighResTexture } from '../../lib/textures';
+import { getDeviceQualityProfile } from '../../lib/deviceQuality';
 
 const vertexShader = /* glsl */ `
 uniform float uRadius;
@@ -122,9 +123,10 @@ const PlanetRings = memo(function PlanetRings({
   const ring = visual.ring!;
   const tex = useRingTexture(visual, highRes);
 
+  const ringSegments = getDeviceQualityProfile().ringSegments;
   const geometry = useMemo(
-    () => new THREE.RingGeometry(radius * ring.inner, radius * ring.outer, 128, 2),
-    [radius, ring.inner, ring.outer]
+    () => new THREE.RingGeometry(radius * ring.inner, radius * ring.outer, ringSegments, 2),
+    [radius, ring.inner, ring.outer, ringSegments]
   );
   useEffect(() => () => geometry.dispose(), [geometry]);
 

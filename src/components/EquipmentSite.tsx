@@ -17,6 +17,7 @@ import { useGLTF, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import { getLandmarksForBody, type Landmark } from '../data/landmarks';
 import { latLonToVector3 } from '../lib/cinematic';
+import { getDeviceQualityProfile } from '../lib/deviceQuality';
 import {
   createHologramBodyMaterial,
   createHologramPedestalMaterial,
@@ -395,6 +396,7 @@ const EquipmentSite = memo(function EquipmentSite({
     }
   });
 
+  const quality = useMemo(() => getDeviceQualityProfile(), []);
   const pedestalSize = baseScale * 2.5;
 
   return (
@@ -477,7 +479,7 @@ const EquipmentSite = memo(function EquipmentSite({
         {/* Floating cyan holographic energy particles when inspected */}
         {isHoloActive && displayMode !== 'physical' && (
           <Sparkles
-            count={28}
+            count={quality.sparkleCount.holo}
             scale={[baseScale * 1.8, baseScale * 1.4, baseScale * 1.8]}
             position={[0, baseScale * 0.65, 0]}
             size={2.1}
@@ -490,7 +492,7 @@ const EquipmentSite = memo(function EquipmentSite({
         {/* Atmospheric dust motes during cinematic close-up */}
         {isCinematic && (
           <Sparkles
-            count={32}
+            count={quality.sparkleCount.cinematic}
             scale={[baseScale * 8, baseScale * 2.5, baseScale * 8]}
             position={[0, baseScale * 1.2, 0]}
             size={2}

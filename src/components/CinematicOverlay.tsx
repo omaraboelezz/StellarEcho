@@ -2,7 +2,7 @@
 // HUD shown while a landmark story plays: title, chapter navigation, captions, progress,
 // play/pause/mute/replay/exit, and the interactive Mission Knowledge Quiz that unlocks
 // once the student reaches the end of the equipment timeline.
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -17,10 +17,12 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import type { Landmark } from '../data/landmarks';
+import type { LandmarkQuiz } from '../data/quizzes';
 import type { CinematicTimeline, TimelineSnapshot } from '../lib/CinematicTimeline';
 import type { QuizRecord } from '../lib/streak';
-import MissionQuizModal from './MissionQuizModal';
 import { useLanguage } from '../i18n/LanguageContext';
+
+const MissionQuizModal = lazy(() => import('./MissionQuizModal'));
 
 interface Props {
   landmark: Landmark;
@@ -64,12 +66,57 @@ export default function CinematicOverlay({
     t,
     getLocalizedBody,
     getLocalizedChapters,
-    getLocalizedQuiz,
   } = useLanguage();
 
   const [snap, setSnap] = useState<TimelineSnapshot>(() => timeline.snapshot());
   const [quizOpen, setQuizOpen] = useState(false);
   const [reachedEnd, setReachedEnd] = useState(false);
+  const [quiz, setQuiz] = useState<LandmarkQuiz | undefined>(undefined);
+
+  // Lazily load quiz data (+ Arabic quiz translations only when lang === 'ar')
+  useEffect(() => {
+    let alive = true;
+    Promise.all([
+      import('../data/quizzes'),
+      lang === 'ar' ? import('../i18n/arQuizzesAndResources') : Promise.resolve(null),
+    ])
+      .then(([quizMod, arMod]) => {
+        if (!alive) return;
+        const baseQuiz = quizMod.getQuizForLandmark(landmark.id);
+        if (!baseQuiz) {
+          setQuiz(undefined);
+          return;
+        }
+        if (lang !== 'ar' || !arMod) {
+          setQuiz(baseQuiz);
+          return;
+        }
+        const arOverlay = arMod.arQuizzes[landmark.id];
+        if (!arOverlay) {
+          setQuiz(baseQuiz);
+          return;
+        }
+        setQuiz({
+          ...baseQuiz,
+          title: arOverlay.title,
+          description: arOverlay.description,
+          questions: baseQuiz.questions.map((q, idx) => {
+            const arQ = arOverlay.questions[idx];
+            if (!arQ) return q;
+            return {
+              ...q,
+              question: arQ.prompt,
+              options: arQ.options,
+              explanation: arQ.explanation,
+            };
+          }),
+        });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [landmark.id, lang]);
 
   // Poll timeline snapshot only while quiz is closed and only re-render when visible fields change
   useEffect(() => {
@@ -109,7 +156,6 @@ export default function CinematicOverlay({
     }
   }, [ended, isLastChapter]);
 
-  const quiz = getLocalizedQuiz(landmark.id);
   const localizedBody = getLocalizedBody(landmark.bodyId);
   const planetName =
     localizedBody?.name ??
@@ -371,7 +417,7 @@ export default function CinematicOverlay({
             <button
               type="button"
               onClick={handleOpenQuiz}
-              className="cinematic-back-inline-btn"
+              className="cinematic-back-inline-btn cinematic-quiz-inline-btn"
               title={t.cinematic.takeMissionQuizTitle}
             >
               {t.cinematic.quizLabel}
@@ -381,7 +427,7 @@ export default function CinematicOverlay({
           <button
             type="button"
             onClick={onExit}
-            className="cinematic-back-inline-btn"
+            className="cinematic-back-inline-btn cinematic-exit-inline-btn"
           >
             {t.hologram.backToPlanet(planetName)}
           </button>
@@ -390,19 +436,21 @@ export default function CinematicOverlay({
 
       {/* Interactive Quiz Modal */}
       {quiz && quizOpen && (
-        <MissionQuizModal
-          quiz={quiz}
-          planetName={planetName}
-          previousRecord={quizRecord}
-          onComplete={(correct, total, maxXp) =>
-            onQuizComplete(landmark.id, landmark.bodyId, correct, total, maxXp)
-          }
-          onClose={() => setQuizOpen(false)}
-          onBackToExploration={() => {
-            setQuizOpen(false);
-            onExit();
-          }}
-        />
+        <Suspense fallback={null}>
+          <MissionQuizModal
+            quiz={quiz}
+            planetName={planetName}
+            previousRecord={quizRecord}
+            onComplete={(correct, total, maxXp) =>
+              onQuizComplete(landmark.id, landmark.bodyId, correct, total, maxXp)
+            }
+            onClose={() => setQuizOpen(false)}
+            onBackToExploration={() => {
+              setQuizOpen(false);
+              onExit();
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -30,6 +30,7 @@ interface Props {
   isExploring: boolean;
   selectedBodyId: string | null;
   activeLandmarkId: string | null;
+  drawerCollapsed?: boolean;
   timelineProgress?: number;
   currentStreak: number;
   totalXp: number;
@@ -92,6 +93,7 @@ export default function AstroChat({
   isExploring,
   selectedBodyId,
   activeLandmarkId,
+  drawerCollapsed = false,
   timelineProgress,
   currentStreak,
   totalXp,
@@ -308,7 +310,7 @@ export default function AstroChat({
 
   return (
     <div
-      className={`astro-root ${drawerOpen ? 'with-drawer' : ''}`}
+      className={`astro-root ${drawerOpen ? 'with-drawer' : ''} ${drawerOpen && drawerCollapsed ? 'drawer-collapsed' : ''}`}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
       <AnimatePresence mode="wait">

@@ -15,6 +15,7 @@ import {
 import { getLandmarksForBody } from '../data/landmarks';
 import { preloadModelsForBody } from './EquipmentSite';
 import { useLanguage } from '../i18n/LanguageContext';
+import { getDeviceQualityProfile } from '../lib/deviceQuality';
 
 interface PlanetNavigatorProps {
   selectedBodyId: string | null;
@@ -358,7 +359,9 @@ const PlanetNavigator = memo(function PlanetNavigator({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.025, duration: 0.22 }}
                     onMouseEnter={() => {
-                      if (missionCount > 0) preloadModelsForBody(meta.id);
+                      if (missionCount > 0 && getDeviceQualityProfile().allowHoverPreload) {
+                        preloadModelsForBody(meta.id);
+                      }
                     }}
                     onClick={() => handleCardSelect(meta.id)}
                     className={`planet-atlas-card ${isSelected ? 'selected' : ''}`}

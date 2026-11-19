@@ -1,10 +1,9 @@
 // src/components/UI.tsx
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sim } from '../lib/cinematic';
 import type { CinematicTimeline } from '../lib/CinematicTimeline';
 import type { CelebrationEvent, DailyMission, ExplorationState } from '../lib/streak';
-import CinematicOverlay from '../components/CinematicOverlay';
 import {
   StreakCelebrationToast,
   StreakModal,
@@ -24,13 +23,19 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import ResourcesSection from '../components/ResourceSection/ResourcesSection';
-import AstroChat from '../components/AstroChat/AstroChat';
-import PlanetNavigator from '../components/PlanetNavigator';
-import HologramEquipmentPanel from '../components/HologramEquipmentPanel';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import type { HologramDisplayMode } from '../lib/hologramShader';
 import { useLanguage } from '../i18n/LanguageContext';
+
+const CinematicOverlay = lazy(() => import('../components/CinematicOverlay'));
+const ResourcesSection = lazy(
+  () => import('../components/ResourceSection/ResourcesSection')
+);
+const AstroChat = lazy(() => import('../components/AstroChat/AstroChat'));
+const PlanetNavigator = lazy(() => import('../components/PlanetNavigator'));
+const HologramEquipmentPanel = lazy(
+  () => import('../components/HologramEquipmentPanel')
+);
 
 interface UIProps {
   isExploring: boolean;
@@ -144,8 +149,11 @@ export default function UI({
 
             <div className="hero-badge">
               <img
-                src="/stellarecho.png"
+                src="/favicon-64x64.png"
                 alt="StellarEcho"
+                width={22}
+                height={22}
+                decoding="async"
                 className="hero-brand-logo"
               />
               <span>StellarEcho · {t.hero.eyebrow}</span>
@@ -176,8 +184,11 @@ export default function UI({
           >
             <div className="glass-panel hud-brand interactive" dir={isRtl ? 'rtl' : 'ltr'}>
               <img
-                src="/stellarecho.png"
+                src="/favicon-64x64.png"
                 alt="StellarEcho"
+                width={28}
+                height={28}
+                decoding="async"
                 className="hud-brand-logo"
               />
               <div>
@@ -244,27 +255,31 @@ export default function UI({
         )}
 
         {isExploring && !activeLandmark && (
-          <PlanetNavigator
-            key="dock"
-            selectedBodyId={selectedBodyId}
-            visitedBodies={streakState.visitedBodies}
-            onSelectBody={onSelectBody}
-            onBackClick={onBackClick}
-          />
+          <Suspense fallback={null}>
+            <PlanetNavigator
+              key="dock"
+              selectedBodyId={selectedBodyId}
+              visitedBodies={streakState.visitedBodies}
+              onSelectBody={onSelectBody}
+              onBackClick={onBackClick}
+            />
+          </Suspense>
         )}
 
         {/* Futuristic Holographic Equipment Information Panel & 3D Stage Controls */}
         {inspectedLandmark && !activeLandmark && (
-          <HologramEquipmentPanel
-            key="hologram-equipment-panel"
-            landmark={inspectedLandmark}
-            displayMode={hologramDisplayMode}
-            onChangeDisplayMode={(mode) => onChangeHologramMode?.(mode)}
-            onTriggerRescan={() => onTriggerRescan?.()}
-            onSelectEquipment={(id) => onInspectLandmark?.(id)}
-            onLaunchTimeline={(id) => onLandmarkSelect(id)}
-            onClose={() => onInspectLandmark?.(null)}
-          />
+          <Suspense fallback={null}>
+            <HologramEquipmentPanel
+              key="hologram-equipment-panel"
+              landmark={inspectedLandmark}
+              displayMode={hologramDisplayMode}
+              onChangeDisplayMode={(mode) => onChangeHologramMode?.(mode)}
+              onTriggerRescan={() => onTriggerRescan?.()}
+              onSelectEquipment={(id) => onInspectLandmark?.(id)}
+              onLaunchTimeline={(id) => onLandmarkSelect(id)}
+              onClose={() => onInspectLandmark?.(null)}
+            />
+          </Suspense>
         )}
 
         {selectedBody && !inspectedLandmark && !activeLandmark && (
@@ -458,11 +473,13 @@ export default function UI({
                   <p className="fact-body">{selectedBody.funFact}</p>
                 </div>
 
-                <ResourcesSection
-                  planetId={selectedBody.id}
-                  planetName={selectedBody.name}
-                  onResourceExplore={onFactDiscover}
-                />
+                <Suspense fallback={null}>
+                  <ResourcesSection
+                    planetId={selectedBody.id}
+                    planetName={selectedBody.name}
+                    onResourceExplore={onFactDiscover}
+                  />
+                </Suspense>
               </>
             )}
           </motion.aside>
@@ -482,26 +499,31 @@ export default function UI({
 
       {/* cinematic HUD */}
       {activeLandmark && (
-        <CinematicOverlay
-          key={activeLandmark.id}
-          landmark={activeLandmark}
-          timeline={timeline}
-          quizRecord={streakState.completedQuizzes?.[activeLandmark.id]}
-          onQuizComplete={onQuizComplete}
-          onExit={onExitCinematic}
-        />
+        <Suspense fallback={null}>
+          <CinematicOverlay
+            key={activeLandmark.id}
+            landmark={activeLandmark}
+            timeline={timeline}
+            quizRecord={streakState.completedQuizzes?.[activeLandmark.id]}
+            onQuizComplete={onQuizComplete}
+            onExit={onExitCinematic}
+          />
+        </Suspense>
       )}
 
       {/* Astro AI Intelligent Space Assistant */}
       {isExploring && (
-        <AstroChat
-          isExploring={isExploring}
-          selectedBodyId={selectedBodyId}
-          activeLandmarkId={activeLandmarkId ?? inspectedLandmarkId}
-          timelineProgress={timeline.progress}
-          currentStreak={streakState.currentStreak}
-          totalXp={streakState.totalXp}
-        />
+        <Suspense fallback={null}>
+          <AstroChat
+            isExploring={isExploring}
+            selectedBodyId={selectedBodyId}
+            activeLandmarkId={activeLandmarkId ?? inspectedLandmarkId}
+            drawerCollapsed={panelCollapsed && !inspectedLandmark}
+            timelineProgress={timeline.progress}
+            currentStreak={streakState.currentStreak}
+            totalXp={streakState.totalXp}
+          />
+        </Suspense>
       )}
     </div>
   );

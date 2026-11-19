@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import {
+  planetResources,
   RESOURCE_CATEGORIES,
   type PlanetResource,
   type ResourceType,
@@ -60,12 +61,29 @@ export default function ResourcesSection({
   planetName,
   onResourceExplore,
 }: ResourcesSectionProps) {
-  const { isRtl, t, getLocalizedResources } = useLanguage();
+  const { lang, isRtl, t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
   const [search, setSearch] = useState('');
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [arResourceMap, setArResourceMap] = useState<
+    Record<string, { title: string; description: string }> | null
+  >(null);
 
   const planetKey = (planetId ?? planetName).toLowerCase().trim();
+
+  // Lazily load Arabic resource translations only when Arabic is active
+  useEffect(() => {
+    if (lang !== 'ar' || arResourceMap) return;
+    let alive = true;
+    import('../../i18n/arQuizzesAndResources')
+      .then((mod) => {
+        if (alive) setArResourceMap(mod.arResourcesByTitle);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [lang, arResourceMap]);
 
   // Automatically reset filter and search when switching between planets
   useEffect(() => {
@@ -73,10 +91,19 @@ export default function ResourcesSection({
     setSearch('');
   }, [planetKey]);
 
-  const resources: PlanetResource[] = useMemo(
-    () => getLocalizedResources(planetKey),
-    [planetKey, getLocalizedResources]
-  );
+  const resources: PlanetResource[] = useMemo(() => {
+    const list = planetResources[planetKey] ?? [];
+    if (lang !== 'ar' || !arResourceMap) return list;
+    return list.map((res) => {
+      const arRes = arResourceMap[res.title];
+      if (!arRes) return res;
+      return {
+        ...res,
+        title: arRes.title,
+        description: arRes.description,
+      };
+    });
+  }, [planetKey, lang, arResourceMap]);
 
   // Only include categories that have actual relevant resources for the selected planet
   const availableCategories = useMemo(() => {
@@ -240,6 +267,7 @@ export default function ResourcesSection({
                       src={resource.image}
                       alt={resource.title}
                       loading="lazy"
+                      decoding="async"
                       onError={() => handleImageError(imageKey)}
                     />
                   ) : (

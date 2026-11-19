@@ -80,6 +80,10 @@ export default function CameraController({
     controls.enablePan = true;
     controls.enableZoom = true;
     controls.maxDistance = 320;
+    controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN,
+    };
 
     const onStart = () => {
       // As soon as the user grabs the camera manually, end the automatic fly-to cleanly
@@ -301,7 +305,7 @@ export default function CameraController({
       if (inspectedAnchor && inspectedLandmark) {
         // Prominent close-up three-quarter hero shot of the 3D holographic equipment
         t.desiredUp.copy(t.normal);
-        const heroDist = holoScale * 2.25;
+        const heroDist = holoScale * (isDesktop ? 2.25 : 2.55);
         const elevRad = THREE.MathUtils.degToRad(24);
         const azimRad = THREE.MathUtils.degToRad(32);
         const horiz = heroDist * Math.cos(elevRad);
@@ -313,7 +317,11 @@ export default function CameraController({
         t.desiredOffset.copy(t.localHeroOffset);
       } else if (selectedBodyId) {
         t.desiredUp.copy(UP);
-        const distance = size * 3.4;
+        const aspectScale =
+          viewportSize.width < viewportSize.height
+            ? THREE.MathUtils.clamp(viewportSize.height / Math.max(1, viewportSize.width) * 0.72, 1, 1.35)
+            : 1;
+        const distance = size * 3.4 * aspectScale;
         if (t.focus.lengthSq() > 0.01) {
           t.sunDir.copy(t.focus).negate().normalize();
           t.sideDir.crossVectors(UP, t.sunDir).normalize();
@@ -327,7 +335,11 @@ export default function CameraController({
         }
       } else {
         t.desiredUp.copy(UP);
-        t.desiredOffset.copy(OVERVIEW_OFFSET);
+        const portraitBoost =
+          viewportSize.width < viewportSize.height
+            ? THREE.MathUtils.clamp((viewportSize.height / Math.max(1, viewportSize.width)) * 0.78, 1, 1.45)
+            : 1;
+        t.desiredOffset.copy(OVERVIEW_OFFSET).multiplyScalar(portraitBoost);
       }
 
       if (pc.near !== DEFAULT_NEAR) {

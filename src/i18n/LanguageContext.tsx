@@ -1,5 +1,6 @@
 // src/i18n/LanguageContext.tsx
-// Centralized Language Provider & Hook for English (EN) and Arabic (AR) with RTL support and localStorage persistence.
+// Centralized Language Provider & Hook for English (EN) and Arabic (AR) with RTL support,
+// localStorage persistence, and on-demand dynamic loading of Arabic translation bundles.
 
 import {
   createContext,
@@ -18,14 +19,48 @@ import {
   type Chapter,
   type Landmark,
 } from '../data/landmarks';
-import { getQuizForLandmark, type LandmarkQuiz } from '../data/quizzes';
-import { planetResources, type PlanetResource } from '../data/resources';
 import { en } from './en';
-import { ar, arBodies, arLandmarks } from './ar';
-import { arQuizzes, arResourcesByTitle } from './arQuizzesAndResources';
 import type { Language, Translations } from './types';
 
+type ArModule = typeof import('./ar');
+
 const LANGUAGE_STORAGE_KEY = 'solar_atlas_lang';
+const AR_FONTS_LINK_ID = 'stellarecho-ar-fonts';
+const AR_FONTS_HREF =
+  'https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap';
+
+let cachedArModule: ArModule | null = null;
+let arModulePromise: Promise<ArModule> | null = null;
+
+function loadArModule(): Promise<ArModule> {
+  if (cachedArModule) return Promise.resolve(cachedArModule);
+  if (!arModulePromise) {
+    arModulePromise = import('./ar').then((mod) => {
+      cachedArModule = mod;
+      return mod;
+    });
+  }
+  return arModulePromise;
+}
+
+function ensureArabicFontsLoaded(): void {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(AR_FONTS_LINK_ID)) return;
+  const link = document.createElement('link');
+  link.id = AR_FONTS_LINK_ID;
+  link.rel = 'stylesheet';
+  link.href = AR_FONTS_HREF;
+  document.head.appendChild(link);
+}
+
+/** Lightweight synchronous lookups for Three.js / R3F components without statically bundling ar.ts */
+export function getCachedArBodyName(bodyId: string): string | undefined {
+  return cachedArModule?.arBodies[bodyId]?.name;
+}
+
+export function getCachedArLandmarkName(landmarkId: string): string | undefined {
+  return cachedArModule?.arLandmarks[landmarkId]?.name;
+}
 
 function getInitialLanguage(): Language {
   if (typeof window === 'undefined') return 'en';
@@ -43,11 +78,18 @@ function applyDocumentLanguage(lang: Language): void {
   document.documentElement.lang = lang;
   document.documentElement.dir = dir;
   document.title = 'StellarEcho';
+  if (lang === 'ar') {
+    ensureArabicFontsLoaded();
+  }
 }
 
-function localizeBodyData(body: PlanetData, lang: Language): PlanetData {
-  if (lang !== 'ar') return body;
-  const arFields = arBodies[body.id];
+function localizeBodyData(
+  body: PlanetData,
+  lang: Language,
+  arMod: ArModule | null
+): PlanetData {
+  if (lang !== 'ar' || !arMod) return body;
+  const arFields = arMod.arBodies[body.id];
   if (!arFields) return body;
   return {
     ...body,
@@ -61,9 +103,13 @@ function localizeBodyData(body: PlanetData, lang: Language): PlanetData {
   };
 }
 
-function localizeLandmarkData(landmark: Landmark, lang: Language): Landmark {
-  if (lang !== 'ar') return landmark;
-  const arFields = arLandmarks[landmark.id];
+function localizeLandmarkData(
+  landmark: Landmark,
+  lang: Language,
+  arMod: ArModule | null
+): Landmark {
+  if (lang !== 'ar' || !arMod) return landmark;
+  const arFields = arMod.arLandmarks[landmark.id];
   if (!arFields) return landmark;
   return {
     ...landmark,
@@ -79,11 +125,15 @@ function localizeLandmarkData(landmark: Landmark, lang: Language): Landmark {
   };
 }
 
-function localizeChaptersData(landmark: Landmark, lang: Language): Chapter[] {
-  const localizedLm = localizeLandmarkData(landmark, lang);
+function localizeChaptersData(
+  landmark: Landmark,
+  lang: Language,
+  arMod: ArModule | null
+): Chapter[] {
+  const localizedLm = localizeLandmarkData(landmark, lang, arMod);
   const baseChapters = getChapters(localizedLm);
-  if (lang !== 'ar') return baseChapters;
-  const arFields = arLandmarks[landmark.id];
+  if (lang !== 'ar' || !arMod) return baseChapters;
+  const arFields = arMod.arLandmarks[landmark.id];
   if (!arFields) return baseChapters;
   return baseChapters.map((ch, idx) => ({
     ...ch,
@@ -91,54 +141,11 @@ function localizeChaptersData(landmark: Landmark, lang: Language): Chapter[] {
   }));
 }
 
-function localizeQuizData(
-  landmarkId: string,
-  lang: Language
-): LandmarkQuiz | undefined {
-  const baseQuiz = getQuizForLandmark(landmarkId);
-  if (!baseQuiz) return undefined;
-  if (lang !== 'ar') return baseQuiz;
-  const arOverlay = arQuizzes[landmarkId];
-  if (!arOverlay) return baseQuiz;
-
-  return {
-    ...baseQuiz,
-    title: arOverlay.title,
-    description: arOverlay.description,
-    questions: baseQuiz.questions.map((q, idx) => {
-      const arQ = arOverlay.questions[idx];
-      if (!arQ) return q;
-      return {
-        ...q,
-        question: arQ.prompt,
-        options: arQ.options,
-        explanation: arQ.explanation,
-      };
-    }),
-  };
-}
-
-function localizeResourcesData(
-  bodyId: string,
-  lang: Language
-): PlanetResource[] {
-  const list = planetResources[bodyId] ?? [];
-  if (lang !== 'ar') return list;
-  return list.map((res) => {
-    const arRes = arResourcesByTitle[res.title];
-    if (!arRes) return res;
-    return {
-      ...res,
-      title: arRes.title,
-      description: arRes.description,
-    };
-  });
-}
-
 interface LanguageContextValue {
   lang: Language;
   setLang: (lang: Language) => void;
   isRtl: boolean;
+  arReady: boolean;
   t: Translations;
   localizeBody: (body: PlanetData) => PlanetData;
   getLocalizedBody: (id: string | null | undefined) => PlanetData | undefined;
@@ -146,8 +153,6 @@ interface LanguageContextValue {
   getLocalizedLandmark: (id: string | null | undefined) => Landmark | undefined;
   getLocalizedLandmarksForBody: (bodyId: string) => Landmark[];
   getLocalizedChapters: (landmark: Landmark) => Chapter[];
-  getLocalizedQuiz: (landmarkId: string) => LandmarkQuiz | undefined;
-  getLocalizedResources: (bodyId: string) => PlanetResource[];
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -158,10 +163,29 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     applyDocumentLanguage(initial);
     return initial;
   });
+  const [arMod, setArMod] = useState<ArModule | null>(() => cachedArModule);
+
+  useEffect(() => {
+    if (lang !== 'ar' || arMod) return;
+    let active = true;
+    loadArModule()
+      .then((mod) => {
+        if (active) setArMod(mod);
+      })
+      .catch((err) => {
+        console.warn('[i18n] Failed to load Arabic bundle:', err);
+      });
+    return () => {
+      active = false;
+    };
+  }, [lang, arMod]);
 
   const setLang = useCallback((nextLang: Language) => {
     setLangState(nextLang);
     applyDocumentLanguage(nextLang);
+    if (nextLang === 'ar' && !cachedArModule) {
+      loadArModule().then((mod) => setArMod(mod)).catch(() => {});
+    }
     try {
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLang);
     } catch {
@@ -173,56 +197,47 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     applyDocumentLanguage(lang);
   }, [lang]);
 
-  const t = lang === 'ar' ? ar : en;
+  const t = lang === 'ar' && arMod ? arMod.ar : en;
   const isRtl = lang === 'ar';
+  const arReady = Boolean(arMod);
 
   const localizeBody = useCallback(
-    (body: PlanetData) => localizeBodyData(body, lang),
-    [lang]
+    (body: PlanetData) => localizeBodyData(body, lang, arMod),
+    [lang, arMod]
   );
 
   const getLocalizedBody = useCallback(
     (id: string | null | undefined) => {
       if (!id) return undefined;
       const base = celestialBodies[id];
-      return base ? localizeBodyData(base, lang) : undefined;
+      return base ? localizeBodyData(base, lang, arMod) : undefined;
     },
-    [lang]
+    [lang, arMod]
   );
 
   const localizeLandmark = useCallback(
-    (landmark: Landmark) => localizeLandmarkData(landmark, lang),
-    [lang]
+    (landmark: Landmark) => localizeLandmarkData(landmark, lang, arMod),
+    [lang, arMod]
   );
 
   const getLocalizedLandmark = useCallback(
     (id: string | null | undefined) => {
       if (!id) return undefined;
       const base = getLandmark(id);
-      return base ? localizeLandmarkData(base, lang) : undefined;
+      return base ? localizeLandmarkData(base, lang, arMod) : undefined;
     },
-    [lang]
+    [lang, arMod]
   );
 
   const getLocalizedLandmarksForBody = useCallback(
     (bodyId: string) =>
-      getLandmarksForBody(bodyId).map((lm) => localizeLandmarkData(lm, lang)),
-    [lang]
+      getLandmarksForBody(bodyId).map((lm) => localizeLandmarkData(lm, lang, arMod)),
+    [lang, arMod]
   );
 
   const getLocalizedChapters = useCallback(
-    (landmark: Landmark) => localizeChaptersData(landmark, lang),
-    [lang]
-  );
-
-  const getLocalizedQuiz = useCallback(
-    (landmarkId: string) => localizeQuizData(landmarkId, lang),
-    [lang]
-  );
-
-  const getLocalizedResources = useCallback(
-    (bodyId: string) => localizeResourcesData(bodyId, lang),
-    [lang]
+    (landmark: Landmark) => localizeChaptersData(landmark, lang, arMod),
+    [lang, arMod]
   );
 
   const value = useMemo<LanguageContextValue>(
@@ -230,6 +245,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       lang,
       setLang,
       isRtl,
+      arReady,
       t,
       localizeBody,
       getLocalizedBody,
@@ -237,13 +253,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       getLocalizedLandmark,
       getLocalizedLandmarksForBody,
       getLocalizedChapters,
-      getLocalizedQuiz,
-      getLocalizedResources,
     }),
     [
       lang,
       setLang,
       isRtl,
+      arReady,
       t,
       localizeBody,
       getLocalizedBody,
@@ -251,8 +266,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       getLocalizedLandmark,
       getLocalizedLandmarksForBody,
       getLocalizedChapters,
-      getLocalizedQuiz,
-      getLocalizedResources,
     ]
   );
 
@@ -268,4 +281,3 @@ export function useLanguage(): LanguageContextValue {
   }
   return ctx;
 }
-

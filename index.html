@@ -2,21 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/stellarecho.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#02040a" />
     <meta name="application-name" content="StellarEcho" />
     <meta property="og:site_name" content="StellarEcho" />
     <meta property="og:title" content="StellarEcho" />
-    <meta property="og:image" content="/stellarecho.png" />
+    <meta property="og:image" content="/favicon-192x192.png" />
     <title>StellarEcho</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <script>
@@ -26,6 +26,13 @@
           var lang = saved === 'ar' ? 'ar' : 'en';
           document.documentElement.lang = lang;
           document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+          if (lang === 'ar') {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.id = 'stellarecho-ar-fonts';
+            link.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap';
+            document.head.appendChild(link);
+          }
         } catch (e) {
           document.documentElement.lang = 'en';
           document.documentElement.dir = 'ltr';

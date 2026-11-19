@@ -16,12 +16,14 @@ import PlanetRings from './space/PlanetRings';
 import { useSunMaterial, SunCorona } from './space/SunSurface';
 import Label3D from './space/Label3D';
 import type { HologramDisplayMode } from '../lib/hologramShader';
-import { arBodies } from '../i18n/ar';
+import { getCachedArBodyName } from '../i18n/LanguageContext';
+import { getDeviceQualityProfile } from '../lib/deviceQuality';
 import type { Language } from '../i18n/types';
 
 interface CelestialBodyProps {
   data: PlanetData;
   lang?: Language;
+  arReady?: boolean;
   onClick: (id: string, position: THREE.Vector3) => void;
   /** which body the camera is focused on (markers only show on this one) */
   selectedBodyId?: string | null;
@@ -40,6 +42,7 @@ interface CelestialBodyProps {
 // ---------------------------------------------------------------------------------------------
 const _sphere = new THREE.Sphere();
 const _hit = new THREE.Vector3();
+const _clickWorldPos = new THREE.Vector3();
 function makeSphereRaycast(radius: number) {
   return function (this: THREE.Mesh, raycaster: THREE.Raycaster, intersects: THREE.Intersection[]) {
     this.getWorldPosition(_sphere.center);
@@ -98,6 +101,7 @@ function useBodyTextures(visual: BodyVisual, highRes: boolean) {
 const CelestialBody = memo(function CelestialBody({
   data,
   lang = 'en',
+  arReady = false,
   onClick,
   selectedBodyId = null,
   inspectedLandmarkId = null,
@@ -107,6 +111,7 @@ const CelestialBody = memo(function CelestialBody({
   onLandmarkClick,
   children,
 }: CelestialBodyProps) {
+  const quality = useMemo(() => getDeviceQualityProfile(), []);
   const visual = bodyVisuals[data.id];
   const isStar = data.type === 'star';
 
@@ -118,6 +123,13 @@ const CelestialBody = memo(function CelestialBody({
 
   const isSelected = selectedBodyId === data.id;
   const bodyLandmarks = useMemo(() => getLandmarksForBody(data.id), [data.id]);
+  const isInspectingHere = useMemo(
+    () =>
+      isSelected &&
+      !!inspectedLandmarkId &&
+      bodyLandmarks.some((l) => l.id === inspectedLandmarkId),
+    [isSelected, inspectedLandmarkId, bodyLandmarks]
+  );
   const activeLandmark = activeLandmarkId ? getLandmark(activeLandmarkId) : undefined;
   const cinematicHere = !!activeLandmark && activeLandmark.bodyId === data.id;
   const showMarkers = isSelected && !activeLandmarkId && bodyLandmarks.length > 0;
@@ -194,22 +206,23 @@ const CelestialBody = memo(function CelestialBody({
     [onLandmarkClick]
   );
 
-  // Lazily pre-warm only this planet's 3D equipment models when hovered or selected
+  // Lazily pre-warm only this planet's 3D equipment models when selected (or hovered on desktop)
   useEffect(() => {
-    if ((isSelected || hovered) && bodyLandmarks.length > 0) {
+    const shouldPreload = isSelected || (hovered && quality.allowHoverPreload);
+    if (shouldPreload && bodyLandmarks.length > 0) {
       preloadModelsForBody(data.id);
     }
-  }, [isSelected, hovered, bodyLandmarks.length, data.id]);
+  }, [isSelected, hovered, quality.allowHoverPreload, bodyLandmarks.length, data.id]);
 
-  // ---- geometry: constant optimal tessellation (zero geometry rebuild/pop on selection) --
-  const segments: [number, number] = isStar ? [80, 40] : [96, 48];
-  const cloudSegments: [number, number] = [64, 32];
+  // ---- geometry: adaptive tessellation based on device quality tier ----
+  const segments: [number, number] = isStar ? quality.sunSegments : quality.planetSegments;
+  const cloudSegments: [number, number] = quality.cloudSegments;
 
   // ---- orbit line (drawn around the parent, not around this body) -----------------------
   const orbitLine = useMemo(() => {
     if (data.orbitRadius <= 0) return null;
     const pts: THREE.Vector3[] = [];
-    const N = data.type === 'moon' ? 192 : 512;
+    const N = data.type === 'moon' ? quality.orbitPoints.moon : quality.orbitPoints.planet;
     for (let i = 0; i < N; i++) {
       const a = (i / N) * Math.PI * 2;
       pts.push(new THREE.Vector3(Math.cos(a) * data.orbitRadius, 0, Math.sin(a) * data.orbitRadius));
@@ -224,7 +237,7 @@ const CelestialBody = memo(function CelestialBody({
     const line = new THREE.LineLoop(geo, mat);
     line.raycast = () => null;
     return line;
-  }, [data.orbitRadius, data.type]);
+  }, [data.orbitRadius, data.type, quality.orbitPoints.moon, quality.orbitPoints.planet]);
   useEffect(
     () => () => {
       if (!orbitLine) return;
@@ -262,8 +275,6 @@ const CelestialBody = memo(function CelestialBody({
     }
 
     // Self rotation. Slower on the selected body so markers and 3D equipment models are easy to inspect.
-    const isInspectingHere =
-      isSelected && !!inspectedLandmarkId && bodyLandmarks.some((l) => l.id === inspectedLandmarkId);
     const spinFactor = isInspectingHere ? 0 : isSelected ? 0.18 : 1;
     if (meshRef.current) {
       if (visual.tidallyLocked) {
@@ -305,9 +316,8 @@ const CelestialBody = memo(function CelestialBody({
     e.stopPropagation();
     if (activeLandmarkId) return; // ignore clicks while a cinematic is playing
 
-    const worldPosition = new THREE.Vector3();
-    meshRef.current.getWorldPosition(worldPosition);
-    onClick(data.id, worldPosition);
+    meshRef.current.getWorldPosition(_clickWorldPos);
+    onClick(data.id, _clickWorldPos);
   };
 
   useEffect(() => () => void (document.body.style.cursor = 'auto'), []);
@@ -363,6 +373,7 @@ const CelestialBody = memo(function CelestialBody({
                   <LandmarkMarker
                     landmark={l}
                     lang={lang}
+                    arReady={arReady}
                     radius={data.size}
                     isInspected={inspectedLandmarkId === l.id}
                     onSelect={handleLandmarkSelect}
@@ -408,8 +419,8 @@ const CelestialBody = memo(function CelestialBody({
           <Billboard position={[0, data.size + (isStar ? 2.6 : data.type === 'moon' ? 0.55 : Math.max(0.9, data.size * 0.55)), 0]}>
             <Label3D
               text={
-                lang === 'ar'
-                  ? (arBodies[data.id]?.name ?? data.name)
+                lang === 'ar' && arReady
+                  ? (getCachedArBodyName(data.id) ?? data.name)
                   : data.name.toUpperCase()
               }
               fontSize={isStar ? 1.3 : data.type === 'moon' ? 0.36 : Math.max(0.55, data.size * 0.36)}

@@ -5,8 +5,14 @@
 import { useMemo, useEffect, memo } from 'react';
 import * as THREE from 'three';
 import type { AtmosphereLook } from '../../data/planetVisuals';
+import { getDeviceQualityProfile } from '../../lib/deviceQuality';
 
-const SHARED_ATMO_GEO = new THREE.SphereGeometry(1, 64, 32);
+const atmoQuality = getDeviceQualityProfile();
+const SHARED_ATMO_GEO = new THREE.SphereGeometry(
+  1,
+  atmoQuality.tier === 'high' ? 64 : 40,
+  atmoQuality.tier === 'high' ? 32 : 20
+);
 
 const vertexShader = /* glsl */ `
 varying vec3 vNormalW;

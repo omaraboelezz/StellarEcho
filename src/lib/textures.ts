@@ -14,13 +14,15 @@
 import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
 import { useEffect, useState } from 'react';
+import { getDeviceQualityProfile } from './deviceQuality';
 
 const HIGH_RES_DISPOSE_DELAY_MS = 30000;
 const HIGH_RES_SETTLE_DELAY_MS = 1850; // wait for the 1.8s camera fly-in to finish before GPU upload
 
 export function configureTexture(tex: THREE.Texture, gl: THREE.WebGLRenderer, isColor: boolean) {
   const colorSpace = isColor ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  const anisotropy = gl.capabilities.getMaxAnisotropy();
+  const quality = getDeviceQualityProfile();
+  const anisotropy = Math.min(gl.capabilities.getMaxAnisotropy(), quality.maxAnisotropy);
   if (tex.colorSpace === colorSpace && tex.anisotropy === anisotropy) return tex;
   tex.colorSpace = colorSpace;
   tex.anisotropy = anisotropy;
@@ -35,6 +37,8 @@ export function configureTexture(tex: THREE.Texture, gl: THREE.WebGLRenderer, is
 }
 
 export function supportsHighRes(gl: THREE.WebGLRenderer) {
+  const quality = getDeviceQualityProfile();
+  if (!quality.allowHighResTextures) return false;
   if (typeof window !== 'undefined' && window.innerWidth <= 820) return false;
   return gl.capabilities.maxTextureSize >= 8192;
 }

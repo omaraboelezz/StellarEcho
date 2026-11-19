@@ -14,12 +14,13 @@ import * as THREE from 'three';
 import type { Landmark } from '../data/landmarks';
 import { latLonToVector3 } from '../lib/cinematic';
 import Label3D from './space/Label3D';
-import { arLandmarks } from '../i18n/ar';
+import { getCachedArLandmarkName } from '../i18n/LanguageContext';
 import type { Language } from '../i18n/types';
 
 interface Props {
   landmark: Landmark;
   lang?: Language;
+  arReady?: boolean;
   radius: number;
   isInspected?: boolean;
   onSelect: (id: string) => void;
@@ -38,6 +39,7 @@ const _up = new THREE.Vector3(0, 1, 0);
 const LandmarkMarker = memo(function LandmarkMarker({
   landmark,
   lang = 'en',
+  arReady = false,
   radius,
   isInspected = false,
   onSelect,
@@ -156,8 +158,8 @@ const LandmarkMarker = memo(function LandmarkMarker({
           <Billboard position={[0, dot * 3.6, 0]}>
             <Label3D
               text={
-                lang === 'ar'
-                  ? (arLandmarks[landmark.id]?.name ?? landmark.name)
+                lang === 'ar' && arReady
+                  ? (getCachedArLandmarkName(landmark.id) ?? landmark.name)
                   : landmark.name
               }
               fontSize={radius * 0.085}

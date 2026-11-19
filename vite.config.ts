@@ -99,10 +99,24 @@ export default defineConfig(({ mode }) => ({
     rolldownOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/three/')) return 'vendor-three';
-          if (id.includes('node_modules/@react-three/')) return 'vendor-r3f';
-          if (id.includes('node_modules/framer-motion/')) return 'vendor-motion';
-          if (id.includes('node_modules/lucide-react/')) return 'vendor-icons';
+          const normalized = id.replace(/\\/g, '/');
+          if (normalized.includes('/node_modules/three/')) return 'vendor-three';
+          if (
+            normalized.includes('/node_modules/@react-three/') ||
+            normalized.includes('/node_modules/troika-') ||
+            normalized.includes('/node_modules/three-stdlib/')
+          ) {
+            return 'vendor-r3f';
+          }
+          if (normalized.includes('/node_modules/framer-motion/')) return 'vendor-motion';
+          if (normalized.includes('/node_modules/lucide-react/')) return 'vendor-icons';
+          if (
+            normalized.includes('/node_modules/react/') ||
+            normalized.includes('/node_modules/react-dom/') ||
+            normalized.includes('/node_modules/scheduler/')
+          ) {
+            return 'vendor-react';
+          }
         },
       },
     },
